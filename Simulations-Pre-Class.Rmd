@@ -27,18 +27,236 @@ options(scipen = 3, digits = 3)
 #Project Goals:
 
 
-With this project we will simulate a famoues probability problem. This will not require knowledge of probability or statistics but only the logic to follow the steps in order to simulate this problem. This is one way to solve problems by using the computer. 
+With this project we will simulate a famous probability problem. This will not require knowledge of probability or statistics but only the logic to follow the steps in order to simulate this problem. This is one way to solve problems by using the computer. 
 
  1. **Gambler's Ruin**: Suppose you have a bankroll of $1000 and make bets of $100 on a fair game. By simulating the outcome directly for at most 5000 iterations of the game (or hands), estimate:
     a. the probability that you have "busted" (lost all your money) by the time you have placed your one hundredth bet. 
+```{r}
+## open libraries 
+library(tidyverse)
+## set seed for replicability, running the simulation 
+set.seed(1234)
+## function for gambler's ruin 
+gamb.ruin <- function(bet, bankroll, p) {
+  money.back <- bet
+  x <- 0 #empty vector to count number of games 
+  while(bankroll >= bet) { ##run as long as you have money to bet
+    game <- runif(1)
+    if(game <= p) { ## if win, bet goes back to original value 
+      bankroll = bankroll + bet
+      bet = money.back
+    } else { ## if lose, next bet doubles, want money back wants to get money back
+      bankroll = bankroll - bet
+      bet = bet + bet 
+    }
+  x <- x+1
+    if(bankroll < bet){break} ##end if you don't have enough to bet 
+  }
+  times.played <- x 
+  return(times.played)
+}
+
+num.games <- numeric() ##create empty numeric vector 
+simulation <- 5000
+for(i in 1:simulation) {
+  hand <- gamb.ruin(bet=100, bankroll=900, p=.5) ##already betting 100, so you only have 900 to really play, place number of games in vector 
+  num.games <- c(num.games, hand)
+}
+
+a <- length(num.games) #simualted games 
+b <- length(
+  which(num.games<=100) #amount of simulations that ended at/before 100 hands
+)
+a
+b
+
+PR <- b/a
+PR
+```
     b. the probability that you have busted by the time you have placed your five hundredth bet by simulating the outcome directly. 
+```{r}
+a <- length(num.games)
+b <- length(
+  which(num.games <=500)
+)
+
+PR <- b/a
+PR
+```
     c. the mean time you go bust, given that you go bust within the first 5000 hands.
+```{r}
+mean(
+  num.games[which(num.games<=5000)]
+)
+```
     d. the mean and variance of your bankroll after 100 hands (including busts).
+```{r}
+## set seed for replicability, running the simulation 
+set.seed(1234)
+## function for gambler's ruin but w/ 100 games
+gamb.ruin.bankroll <- function(bet, bankroll, p) {
+  x <- 0
+  money.back <- bet 
+  while(bankroll >= bet) { 
+    game <- runif(1)
+    if(game <= p) {  
+      bankroll = bankroll + bet
+      bet = money.back
+    } else { 
+      bankroll = bankroll - bet
+      bet = bet + bet
+    }
+    if(bankroll < bet){break} 
+    if(x == 100){break} ##end if hit 100 games 
+  }
+  x <- x+1
+  times.played <- x 
+  return(bankroll) ## return bankroll instead of num of games
+}
+
+bankroll <- numeric() ## set up empty bankroll 
+simulation <- 5000
+for(i in 1:simulation){
+  hand <- gamb.ruin.bankroll(100, 900, 0.5)
+  bankroll <- c(bankroll, hand)
+}
+
+mean(bankroll)
+var(bankroll)
+
+```
     e. the mean and variance of your bankroll after 500 hands (including busts).
+```{r}
+## set seed for replicability, running the simulation 
+set.seed(1234)
+## function for gambler's ruin, but now with 500 games
+gamb.ruin.bankroll.500 <- function(bet, bankroll, p) {
+  x <- 0 
+  money.back <- bet
+  while(bankroll >= bet) { 
+    game <- runif(1)
+    if(game <= p) {
+      bankroll = bankroll + bet
+      bet = money.back
+    } else { 
+      bankroll = bankroll - bet
+      bet = bet + bet
+    }
+  x <- x+1
+    if(bankroll < bet){break} ##end if you don't have enough to bet
+    if(x == 500){break} ##end if hit 500 games 
+  }
+  times.played <- x 
+  return(bankroll)
+}
+
+bankroll <- numeric() ## set up empty bankroll 
+simulation <- 5000
+for(i in 1:simulation){
+  hand <- gamb.ruin.bankroll.500(100, 900, 0.5)
+  bankroll <- c(bankroll, hand)
+}
+
+mean(bankroll)
+var(bankroll)
+```
  
 Note: you *must* stop playing if your player has gone bust. How will you handle this in the `for` loop?
 
 2. **Markov Chains**. Suppose you have a game where the probability of winning on your first hand is 48%; each time you win, that probability goes up by one percentage point for the next game (to a maximum of 100%, where it must stay), and each time you lose, it goes back down to 48%. Assume you cannot go bust and that the size of your wager is a constant $100.
     a. Is this a fair game? Simulate one hundred thousand sequential hands to determine the size of your return. Then repeat this simulation 99 more times to get a range of values to calculate the expectation.
-    b. Repeat this process but change the starting probability to a new value within 2% either way. Get the expected return after 100 repetitions. Keep exploring until you have a return value that is as fair as you can make it. Can you do this automatically?
-    c. Repeat again, keeping the initial probability at 48%, but this time change the probability increment to a value different from 1%. Get the expected return after 100 repetitions. Keep changing this value until you have a return value that is as fair as you can make it. 
+```{r}
+## set seed for replicability, running the simulation 
+set.seed(1234)
+## basically gamb.ruin function with edits to p 
+m.chains <- function(bet, bankroll, p) {
+  x <- 0 
+  chances <- p #create a vector for chance at winning at original p 
+  while(bankroll >= bet) { 
+    game <- runif(1)
+    if(game <= p) { ## bets remain constant, p change 
+      bankroll = bankroll + bet
+      p = p + 0.01
+    } else { ## if lose, p goes back to original 
+      bankroll = bankroll - bet
+      p = chances
+    }
+  x <- x+1
+    if(bankroll < bet){break} ##end if you don't have enough to bet 
+    if(x == 100000){break}
+  }
+  times.played <- x
+  return(bankroll)
+}
+
+collect <- numeric()
+simulation <- 99
+for(i in 1:simulation){
+  hand <- m.chains(100, 900, 0.48)
+  collect <- c(collect, hand)
+}
+mean(collect)
+## game is not fair because mean of your returns are 0... 
+```
+  
+  b. Repeat this process but change the starting probability to a new value within 2% either way. Get the expected return after 100 repetitions. Keep exploring until you have a return value that is as fair as you can make it. Can you do this automatically?
+```{r}
+set.seed(1234)
+return <- numeric()
+for (i in 1:15) { ## create a loop that runs m.chains but changes the beginning p everytime 
+  return.size <- numeric() #empty vector for inputs from m.chains
+  simulated <- 100
+    for(x in 1:simulated) { 
+      hand <- m.chains(100, 900, 0.48 + (0.002*i))
+      return.size <- c(return.size, hand)
+    }
+  prop.return.0 <- length(
+    which(return.size == 0)
+  )/100 ## proportion of returns == 0, should be close to 50%
+  return <- c(return, prop.return.0)
+}
+return
+
+#when starting probability is 51% the game is most fair, slightly in favor of the gambler @ .49 
+```
+  c. Repeat again, keeping the initial probability at 48%, but this time change the probability increment to a value different from 1%. Get the expected return after 100 repetitions. Keep changing this value until you have a return value that is as fair as you can make it. 
+```{r}
+set.seed(1234)
+## basically m.chains but with new arguement 
+m.chains.increase <- function(bet, bankroll, p, p.increase) {
+  x <- 0 
+  chances <- p  
+  while(bankroll >= bet) { 
+    game <- runif(1)
+    if(game <= p) {
+      bankroll = bankroll + bet
+      p = p + p.increase
+    } else { ## if lose, p goes back to original 
+      bankroll = bankroll - bet
+      p = chances
+    }
+  x <- x+1
+    if(bankroll < bet){break} ##end if you don't have enough to bet 
+    if(x == 100000){break}
+  }
+  times.played <- x
+  return(bankroll)
+}
+
+## now to test things via loops
+return <- numeric()
+for (i in 1:15) { 
+  return.size <- numeric() 
+  simulated <- 100
+    for(x in 1:simulated) { ## change code so i  now affects increment 
+      hand <- m.chains.increase(100, 900, 0.48, .003*i)
+      return.size <- c(return.size, hand)
+    }
+  prop.return.0 <- length(
+    which(return.size == 0)
+  )/100 ## proportion of returns == 0 
+  return <- c(return, prop.return.0)
+}
+return
+#somewhere between increments of .30 (56%) and .33 (46%) it is the most fair
+```
